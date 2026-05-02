@@ -17,13 +17,14 @@ st.set_page_config(
 st.markdown("""
 <style>
     .block-container { padding-top: 1rem; }
-    h1, h2, h3 { color: #4A90D9; font-family: Arial; }
+    h1, h2, h3 { font-family: Arial; }
     .metric-card {
         background: #1F3864;
         border-radius: 8px;
         padding: 15px;
         text-align: center;
         color: white;
+        margin-bottom: 8px;
     }
     .metric-label {
         font-size: 11px;
@@ -32,22 +33,38 @@ st.markdown("""
         letter-spacing: 1px;
     }
     .metric-value {
-        font-size: 28px;
+        font-size: 26px;
         font-weight: bold;
         color: white;
         margin: 5px 0;
     }
-    .metric-delta { font-size: 13px; color: #AABBDD; }
-    .stSelectbox label { color: #FFFFFF; font-weight: bold; }
-    .stSlider label    { color: #FFFFFF; font-weight: bold; }
+    .metric-delta { font-size: 12px; color: #AABBDD; }
+    .commentary-box {
+        background: rgba(31,56,100,0.4);
+        border-left: 4px solid #4A90D9;
+        border-radius: 8px;
+        padding: 15px 20px;
+        margin: 15px 0;
+        font-size: 14px;
+        line-height: 1.7;
+        color: #FFFFFF;
+    }
+    .commentary-title {
+        font-size: 13px;
+        color: #4A90D9;
+        font-weight: bold;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 8px;
+    }
 </style>
 """, unsafe_allow_html=True)
 
 COLOURS = {
-    "EMEA"     : "#1F3864",
-    "LATAM"    : "#C62828",
-    "North_Am" : "#2E7D32",
-    "APAC"     : "#E65100",
+    "EMEA"     : "#4A90D9",
+    "LATAM"    : "#E05C5C",
+    "North_Am" : "#4CAF50",
+    "APAC"     : "#FF9800",
 }
 
 @st.cache_data
@@ -77,14 +94,18 @@ actuals   = df[df["Type"] == "Actual"].copy()
 forecasts = df[df["Type"] == "Forecast"].copy()
 regions   = sorted(df["Region"].unique().tolist())
 
+# ── Sidebar ────────────────────────────────────────────────
 st.sidebar.markdown("""
-<div style="background:#1F3864; padding:15px;
-            border-radius:8px; margin-bottom:20px">
-    <h3 style="color:#FFFFFF; margin:0; font-size:16px">
+<div style="background:#1F3864; padding:12px;
+            border-radius:8px; margin-bottom:15px">
+    <p style="color:#FFFFFF; margin:0;
+              font-size:13px; font-weight:bold">
         📊 TechFlow Solutions
-    </h3>
-    <p style="color:#AABBDD; margin:5px 0 0 0;
-              font-size:12px">CFO Intelligence System</p>
+    </p>
+    <p style="color:#AABBDD; margin:3px 0 0 0;
+              font-size:11px">
+        CFO Intelligence System
+    </p>
 </div>
 """, unsafe_allow_html=True)
 
@@ -99,7 +120,6 @@ page = st.sidebar.radio(
 
 st.sidebar.markdown("---")
 st.sidebar.markdown("### ⚙️ Assumptions")
-
 rev_adj = st.sidebar.slider(
     "Revenue Growth Adjustment (%)",
     min_value=-20, max_value=20, value=0, step=1,
@@ -115,7 +135,6 @@ inflation = st.sidebar.slider(
     min_value=0, max_value=10, value=0, step=1,
     help="Applied to OpEx as cost pressure",
 )
-
 st.sidebar.markdown("---")
 st.sidebar.markdown("### 🗺️ Region Filter")
 selected_regions = st.sidebar.multiselect(
@@ -124,6 +143,7 @@ selected_regions = st.sidebar.multiselect(
     default=regions,
 )
 
+# ── Apply adjustments ──────────────────────────────────────
 fc_adj = forecasts.copy()
 fc_adj["Revenue"]    = fc_adj["Revenue"] * (
     1 + rev_adj / 100)
@@ -136,6 +156,197 @@ fc_adj["Operating_Margin"] = (
 
 act_f = actuals[actuals["Region"].isin(selected_regions)]
 fc_f  = fc_adj[fc_adj["Region"].isin(selected_regions)]
+
+# ══════════════════════════════════════════════════════
+#   COMMENTARY ENGINE
+#   Generates dynamic CFO narrative from live KPIs
+# ══════════════════════════════════════════════════════
+
+def generate_scorecard_commentary(
+        rev_fc, opex_fc, margin_fc,
+        rev_growth, margin_change,
+        rev_adj, opex_adj, inflation):
+
+    lines = []
+
+    # Revenue signal
+    if rev_growth > 0.15:
+        lines.append(
+            f"TechFlow is forecast to deliver "
+            f"${rev_fc/1e6:.1f}M in 2026 revenue — "
+            f"a strong {rev_growth:+.1%} growth rate "
+            f"versus the prior year annualised baseline.")
+    elif rev_growth > 0:
+        lines.append(
+            f"TechFlow is forecast to deliver "
+            f"${rev_fc/1e6:.1f}M in 2026 revenue — "
+            f"modest {rev_growth:+.1%} growth versus "
+            f"prior year, indicating stabilisation "
+            f"rather than acceleration.")
+    else:
+        lines.append(
+            f"TechFlow 2026 revenue is forecast at "
+            f"${rev_fc/1e6:.1f}M — a "
+            f"{rev_growth:+.1%} decline versus prior year "
+            f"requiring immediate commercial attention.")
+
+    # Margin signal
+    or_ratio = opex_fc / rev_fc if rev_fc > 0 else 0
+    if or_ratio > 0.40:
+        lines.append(
+            f"The OpEx-to-Revenue ratio of "
+            f"{or_ratio:.1%} is above the 40% CFO alert "
+            f"threshold — operating margin of "
+            f"{margin_fc:.1%} is unsustainable at this "
+            f"cost structure without intervention.")
+    elif or_ratio > 0.32:
+        lines.append(
+            f"The OpEx-to-Revenue ratio of {or_ratio:.1%} "
+            f"is within acceptable range but trending "
+            f"toward the alert zone. Operating margin "
+            f"of {margin_fc:.1%} requires active "
+            f"cost discipline to protect.")
+    else:
+        lines.append(
+            f"The OpEx-to-Revenue ratio of {or_ratio:.1%} "
+            f"is healthy. Operating margin of "
+            f"{margin_fc:.1%} demonstrates strong "
+            f"cost discipline across the group.")
+
+    # Adjustment signal
+    if rev_adj != 0 or opex_adj != 0 or inflation != 0:
+        adj_parts = []
+        if rev_adj != 0:
+            adj_parts.append(
+                f"revenue {rev_adj:+d}% adjustment")
+        if opex_adj != 0:
+            adj_parts.append(
+                f"{opex_adj:+d}% OpEx reduction")
+        if inflation != 0:
+            adj_parts.append(
+                f"{inflation}% inflation pressure")
+        lines.append(
+            f"Scenario active: {', '.join(adj_parts)}. "
+            f"The board should stress-test this scenario "
+            f"against Q1 actuals before committing "
+            f"to the revised outlook.")
+
+    return " ".join(lines)
+
+
+def generate_diagnostic_commentary(actuals_df, regions):
+    high_risk   = []
+    medium_risk = []
+    healthy     = []
+
+    for dim in regions:
+        sub   = (actuals_df[actuals_df["Region"] == dim]
+                 .sort_values("Date"))
+        if len(sub) < 2:
+            continue
+        ratio = sub["Total_OpEx"] / sub["Revenue"]
+        end   = ratio.iloc[-1]
+        slope = np.polyfit(
+            range(len(ratio)), ratio, 1)[0]
+
+        if end > 0.40 or slope > 0.003:
+            high_risk.append(dim)
+        elif end > 0.32 or slope > 0.001:
+            medium_risk.append(dim)
+        else:
+            healthy.append(dim)
+
+    lines = []
+    if high_risk:
+        lines.append(
+            f"🔴 HIGH URGENCY — "
+            f"{', '.join(high_risk)}: OpEx ratio "
+            f"above or approaching the 40% alert zone "
+            f"with an accelerating upward trend. "
+            f"Immediate cost review recommended before "
+            f"Q1 2026 close.")
+    if medium_risk:
+        lines.append(
+            f"🟡 MEDIUM URGENCY — "
+            f"{', '.join(medium_risk)}: Ratio rising "
+            f"but below the alert threshold. Monitor "
+            f"monthly and pre-approve cost reduction "
+            f"actions for activation if trend continues.")
+    if healthy:
+        lines.append(
+            f"🟢 HEALTHY — "
+            f"{', '.join(healthy)}: Cost discipline "
+            f"confirmed. OpEx ratio stable or declining "
+            f"— these regions are generating the "
+            f"operating leverage that offsets "
+            f"group-level deterioration.")
+
+    if not lines:
+        lines.append(
+            "Select at least one region to "
+            "generate diagnostic commentary.")
+    return " ".join(lines)
+
+
+def generate_forecast_commentary(
+        fc_df, act_df, regions):
+    lines = []
+    growing  = []
+    declining = []
+    stable   = []
+
+    for dim in regions:
+        fc_dim  = fc_df[fc_df["Region"] == dim]
+        act_dim = act_df[act_df["Region"] == dim]
+        if len(fc_dim) == 0 or len(act_dim) == 0:
+            continue
+        fc_rev  = fc_dim["Revenue"].sum()
+        act_rev = act_dim["Revenue"].sum() / 2
+        growth  = ((fc_rev - act_rev) / act_rev
+                   if act_rev > 0 else 0)
+        if growth > 0.10:
+            growing.append(
+                f"{dim} ({growth:+.0%})")
+        elif growth < -0.05:
+            declining.append(
+                f"{dim} ({growth:+.0%})")
+        else:
+            stable.append(dim)
+
+    if growing:
+        lines.append(
+            f"Growth engines for 2026: "
+            f"{', '.join(growing)}. "
+            f"These regions are forecast to expand "
+            f"revenue meaningfully above the "
+            f"prior year baseline.")
+    if declining:
+        lines.append(
+            f"Revenue headwinds: "
+            f"{', '.join(declining)}. "
+            f"These regions are forecast below "
+            f"prior year — commercial intervention "
+            f"or cost restructuring is required.")
+    if stable:
+        lines.append(
+            f"Stable contributors: "
+            f"{', '.join(stable)} — "
+            f"forecast in line with prior year, "
+            f"providing a reliable base.")
+
+    lines.append(
+        "Confidence intervals shown represent the "
+        "80% prediction band. Months where the lower "
+        "band approaches zero operating income "
+        "should be flagged as high-risk periods "
+        "requiring active cash management.")
+
+    if not lines:
+        lines.append(
+            "Select at least one region to "
+            "generate forecast commentary.")
+    return " ".join(lines)
+
 
 # ══════════════════════════════════════════════════════
 #   PAGE 1 — EXECUTIVE SCORECARD
@@ -152,8 +363,7 @@ if page == "Executive Scorecard":
 
     if rev_adj != 0 or opex_adj != 0 or inflation != 0:
         st.info(
-            f"⚙️ Active adjustments: "
-            f"Revenue {rev_adj:+d}% | "
+            f"⚙️ Active: Revenue {rev_adj:+d}% | "
             f"OpEx reduction {opex_adj:+d}% | "
             f"Inflation {inflation:+d}%")
 
@@ -162,7 +372,6 @@ if page == "Executive Scorecard":
     fc_2026_oi     = fc_f["Operating_Income"].sum()
     fc_2026_margin = (fc_2026_oi / fc_2026_rev
                       if fc_2026_rev > 0 else 0)
-
     act_rev_total  = act_f["Revenue"].sum()
     act_opex_total = act_f["Total_OpEx"].sum()
     act_oi_total   = (act_f["Operating_Income"].sum()
@@ -170,18 +379,14 @@ if page == "Executive Scorecard":
                       else 0)
     act_margin     = (act_oi_total / act_rev_total
                       if act_rev_total > 0 else 0)
-
-    act_rev_annual  = act_rev_total  / 2
-    act_opex_annual = act_opex_total / 2
-    act_oi_annual   = act_oi_total   / 2
-
-    rev_growth    = ((fc_2026_rev - act_rev_annual)
-                     / act_rev_annual
-                     if act_rev_annual > 0 else 0)
-    margin_change = fc_2026_margin - act_margin
+    act_rev_annual = act_rev_total / 2
+    act_oi_annual  = act_oi_total  / 2
+    rev_growth     = ((fc_2026_rev - act_rev_annual)
+                      / act_rev_annual
+                      if act_rev_annual > 0 else 0)
+    margin_change  = fc_2026_margin - act_margin
 
     c1, c2, c3, c4 = st.columns(4)
-
     with c1:
         st.markdown(f"""
         <div class="metric-card">
@@ -190,12 +395,13 @@ if page == "Executive Scorecard":
             <div class="metric-value">
                 ${fc_2026_rev/1e6:.1f}M</div>
             <div class="metric-delta">
-                {rev_growth:+.1%} vs prior year</div>
+                {rev_growth:+.1%} vs prior year
+            </div>
         </div>""", unsafe_allow_html=True)
 
     with c2:
-        or_ratio  = (fc_2026_opex / fc_2026_rev
-                     if fc_2026_rev > 0 else 0)
+        or_ratio   = (fc_2026_opex / fc_2026_rev
+                      if fc_2026_rev > 0 else 0)
         opex_color = ("#FF6B6B" if or_ratio > 0.40
                       else "#FFD93D"
                       if or_ratio > 0.32
@@ -240,9 +446,23 @@ if page == "Executive Scorecard":
             </div>
         </div>""", unsafe_allow_html=True)
 
-    st.markdown("<br>", unsafe_allow_html=True)
+    # ── AI Commentary ──────────────────────────────────
+    commentary = generate_scorecard_commentary(
+        fc_2026_rev, fc_2026_opex,
+        fc_2026_margin, rev_growth,
+        margin_change, rev_adj, opex_adj, inflation)
+
+    st.markdown(f"""
+    <div class="commentary-box">
+        <div class="commentary-title">
+            🤖 CFO AI Commentary
+        </div>
+        {commentary}
+    </div>
+    """, unsafe_allow_html=True)
+
     st.markdown(
-        "### Revenue & Margin Bridge — 2025 → 2026")
+        "### Revenue Bridge — Prior Year vs 2026")
 
     act_by_region = (act_f.groupby("Region")["Revenue"]
                      .sum() / 2)
@@ -255,16 +475,16 @@ if page == "Executive Scorecard":
         f     = fc_by_region.get(dim,  0) / 1e6
         color = COLOURS.get(dim, "#555")
         fig_bridge.add_trace(go.Bar(
-            name        = dim,
-            x           = [f"Prior Yr {dim}",
-                            f"2026 FC {dim}"],
-            y           = [a, f],
-            marker      = dict(color=color),
-            text        = [f"${a:.1f}M",
-                           f"${f:.1f}M"],
-            textposition= "outside",
-            textfont    = dict(size=11,
-                               color="#FFFFFF"),
+            name         = dim,
+            x            = [f"Prior Yr {dim}",
+                             f"2026 FC {dim}"],
+            y            = [a, f],
+            marker       = dict(color=color),
+            text         = [f"${a:.1f}M",
+                            f"${f:.1f}M"],
+            textposition = "outside",
+            textfont     = dict(size=11,
+                                color="#FFFFFF"),
         ))
 
     fig_bridge.update_layout(
@@ -280,8 +500,7 @@ if page == "Executive Scorecard":
             font=dict(color="#FFFFFF")),
         margin        = dict(t=20, b=80, l=60, r=20),
         yaxis         = dict(
-            tickprefix="#",
-            tickformat=",.0f",
+            tickprefix="$", ticksuffix="M",
             showgrid=True,
             gridcolor="rgba(255,255,255,0.1)",
             color="#FFFFFF"),
@@ -304,7 +523,7 @@ if page == "Executive Scorecard":
         rev_gr  = ((rev_fc - rev_act) / rev_act
                    if rev_act > 0 else 0)
         or_r    = opex_fc / rev_fc if rev_fc > 0 else 0
-        alert   = ("🔴 Alert" if or_r > 0.40
+        alert   = ("🔴 Alert"  if or_r > 0.40
                    else "🟡 Watch" if or_r > 0.32
                    else "🟢 Healthy")
         tbl_rows.append({
@@ -332,6 +551,18 @@ elif page == "Regional Diagnostic":
     st.markdown(
         "*OpEx-to-Revenue ratio — "
         "the margin compression detector*")
+
+    # ── AI Commentary ──────────────────────────────────
+    diag_commentary = generate_diagnostic_commentary(
+        act_f, selected_regions)
+    st.markdown(f"""
+    <div class="commentary-box">
+        <div class="commentary-title">
+            🤖 CFO AI Commentary
+        </div>
+        {diag_commentary}
+    </div>
+    """, unsafe_allow_html=True)
 
     fig_diag = go.Figure()
     for dim in selected_regions:
@@ -371,32 +602,34 @@ elif page == "Regional Diagnostic":
             font    = dict(size=15, color="#4A90D9"),
             x=0, xanchor="left",
         ),
-        height        = 420,
+        height        = 400,
         plot_bgcolor  = "rgba(0,0,0,0)",
         paper_bgcolor = "rgba(0,0,0,0)",
         font          = dict(color="#FFFFFF",
                              family="Arial"),
         yaxis         = dict(
-            tickformat=".0%",
-            showgrid=True,
-            gridcolor="rgba(255,255,255,0.1)",
-            title="OpEx as % of Revenue",
-            color="#FFFFFF"),
+            tickformat  = ".0%",
+            showgrid    = True,
+            gridcolor   = "rgba(255,255,255,0.1)",
+            title       = "OpEx as % of Revenue",
+            color       = "#FFFFFF"),
         xaxis         = dict(
-            showgrid=True,
-            gridcolor="rgba(255,255,255,0.1)",
-            tickformat="%b %y",
-            color="#FFFFFF"),
+            showgrid    = True,
+            gridcolor   = "rgba(255,255,255,0.1)",
+            tickformat  = "%b %y",
+            color       = "#FFFFFF"),
         legend        = dict(
-            orientation="h", y=-0.20,
-            xanchor="center", x=0.5,
-            font=dict(color="#FFFFFF")),
+            orientation = "h",
+            y           = -0.20,
+            xanchor     = "center",
+            x           = 0.5,
+            font        = dict(color="#FFFFFF")),
         margin        = dict(t=80, b=80, l=70, r=60),
     )
     st.plotly_chart(fig_diag,
                     use_container_width=True)
 
-    st.markdown("### Diagnostic Summary")
+    st.markdown("### Diagnostic Summary by Region")
     diag_rows = []
     for dim in selected_regions:
         sub   = (actuals[actuals["Region"] == dim]
@@ -407,8 +640,10 @@ elif page == "Regional Diagnostic":
         delta = end - start
         slope = np.polyfit(
             range(len(ratio)), ratio, 1)[0]
-        urgency = ("🔴 HIGH"   if slope > 0.003
-                   else "🟡 MEDIUM" if slope > 0.001
+        urgency = ("🔴 HIGH"
+                   if slope > 0.003 or end > 0.40
+                   else "🟡 MEDIUM"
+                   if slope > 0.001 or end > 0.32
                    else "🟢 LOW")
         diag_rows.append({
             "Region"     : dim,
@@ -417,8 +652,8 @@ elif page == "Regional Diagnostic":
             "Change"     : f"{delta:+.1%}",
             "Trend"      : f"{slope*100:+.3f}pp/mo",
             "Urgency"    : urgency,
-            "Alert Zone" : "YES 🔴" if end > 0.40
-                           else "NO ✅",
+            "Alert Zone" : "YES 🔴"
+                           if end > 0.40 else "NO ✅",
         })
     st.dataframe(pd.DataFrame(diag_rows),
                  use_container_width=True,
@@ -426,7 +661,7 @@ elif page == "Regional Diagnostic":
 
     st.markdown(
         "### Revenue vs OpEx — 24-Month History")
-    n   = len(selected_regions)
+    n       = len(selected_regions)
     fig_2x2 = make_subplots(
         rows               = max((n+1)//2, 1),
         cols               = min(2, n),
@@ -441,21 +676,21 @@ elif page == "Regional Diagnostic":
                  .sort_values("Date"))
         color = COLOURS.get(dim, "#555")
         fig_2x2.add_trace(go.Scatter(
-            x          = sub["Date"],
-            y          = sub["Revenue"] / 1e6,
-            name       = "Revenue",
-            line       = dict(color=color, width=2),
-            showlegend = (idx == 0),
-            legendgroup= "Revenue",
+            x           = sub["Date"],
+            y           = sub["Revenue"] / 1e6,
+            name        = "Revenue",
+            line        = dict(color=color, width=2),
+            showlegend  = (idx == 0),
+            legendgroup = "Revenue",
         ), row=row, col=col)
         fig_2x2.add_trace(go.Scatter(
-            x          = sub["Date"],
-            y          = sub["Total_OpEx"] / 1e6,
-            name       = "Total OpEx",
-            line       = dict(color="#FF6B6B",
-                              width=2, dash="dot"),
-            showlegend = (idx == 0),
-            legendgroup= "OpEx",
+            x           = sub["Date"],
+            y           = sub["Total_OpEx"] / 1e6,
+            name        = "Total OpEx",
+            line        = dict(color="#FF6B6B",
+                               width=2, dash="dot"),
+            showlegend  = (idx == 0),
+            legendgroup = "OpEx",
         ), row=row, col=col)
     fig_2x2.update_layout(
         height        = 480,
@@ -465,20 +700,24 @@ elif page == "Regional Diagnostic":
                              family="Arial"),
         margin        = dict(t=60, b=80, l=60, r=40),
         legend        = dict(
-            orientation="h", y=-0.18,
-            xanchor="center", x=0.5,
-            font=dict(color="#FFFFFF")),
+            orientation = "h",
+            y           = -0.18,
+            xanchor     = "center",
+            x           = 0.5,
+            font        = dict(color="#FFFFFF")),
     )
     fig_2x2.update_xaxes(
-        tickformat="%b %y", tickangle=-30,
-        showgrid=True,
-        gridcolor="rgba(255,255,255,0.1)",
-        color="#FFFFFF")
+        tickformat  = "%b %y",
+        tickangle   = -30,
+        showgrid    = True,
+        gridcolor   = "rgba(255,255,255,0.1)",
+        color       = "#FFFFFF")
     fig_2x2.update_yaxes(
-        tickprefix="$", ticksuffix="M",
-        showgrid=True,
-        gridcolor="rgba(255,255,255,0.1)",
-        color="#FFFFFF")
+        tickprefix  = "$",
+        ticksuffix  = "M",
+        showgrid    = True,
+        gridcolor   = "rgba(255,255,255,0.1)",
+        color       = "#FFFFFF")
     st.plotly_chart(fig_2x2,
                     use_container_width=True)
 
@@ -493,16 +732,30 @@ elif page == "Forecast View":
         "2026 Forecast View")
     st.markdown(
         "*Actuals Jan 2024 – Dec 2025 | "
-        "Forecast Jan – Dec 2026*")
+        "Forecast Jan – Dec 2026 | "
+        "Adjust assumptions in sidebar*")
 
     if rev_adj != 0 or opex_adj != 0 or inflation != 0:
         st.info(
-            f"⚙️ Adjusted: Revenue {rev_adj:+d}% | "
+            f"⚙️ Scenario active: "
+            f"Revenue {rev_adj:+d}% | "
             f"OpEx reduction {opex_adj:+d}% | "
             f"Inflation {inflation:+d}%")
 
-    n       = len(selected_regions)
-    fig_fc  = make_subplots(
+    # ── AI Commentary ──────────────────────────────────
+    fc_commentary = generate_forecast_commentary(
+        fc_f, act_f, selected_regions)
+    st.markdown(f"""
+    <div class="commentary-box">
+        <div class="commentary-title">
+            🤖 CFO AI Commentary
+        </div>
+        {fc_commentary}
+    </div>
+    """, unsafe_allow_html=True)
+
+    n      = len(selected_regions)
+    fig_fc = make_subplots(
         rows               = max((n+1)//2, 1),
         cols               = min(2, n),
         subplot_titles     = selected_regions,
@@ -540,8 +793,9 @@ elif page == "Forecast View":
                 name          = "Forecast",
                 mode          = "lines",
                 line          = dict(
-                    color="#6BCB77", width=2.5,
-                    dash="dash"),
+                    color     = "#6BCB77",
+                    width     = 2.5,
+                    dash      = "dash"),
                 showlegend    = (idx == 0),
                 legendgroup   = "Forecast",
                 hovertemplate = (
@@ -553,29 +807,32 @@ elif page == "Forecast View":
 
             if ("CI_Lower_Revenue" in fc_dim.columns
                     and fc_dim[
-                        "CI_Lower_Revenue"].notna().any()):
+                        "CI_Lower_Revenue"
+                    ].notna().any()):
                 fig_fc.add_trace(go.Scatter(
                     x         = pd.concat([
                         fc_dim["Date"],
                         fc_dim["Date"][::-1]]),
                     y         = pd.concat([
                         fc_dim["CI_Upper_Revenue"] / 1e6,
-                        fc_dim["CI_Lower_Revenue"][::-1]
-                        / 1e6]),
+                        fc_dim["CI_Lower_Revenue"
+                               ][::-1] / 1e6]),
                     fill      = "toself",
                     fillcolor = "rgba(107,203,119,0.15)",
                     line      = dict(
-                        color="rgba(0,0,0,0)"),
-                    showlegend = (idx == 0),
-                    name       = "80% CI",
-                    legendgroup= "CI",
-                    hoverinfo  = "skip",
+                        color = "rgba(0,0,0,0)"),
+                    showlegend  = (idx == 0),
+                    name        = "80% CI",
+                    legendgroup = "CI",
+                    hoverinfo   = "skip",
                 ), row=row, col=col)
 
         fig_fc.add_vline(
             x    = "2026-01-01",
-            line = dict(color="rgba(255,255,255,0.3)",
-                        width=1, dash="dot"),
+            line = dict(
+                color = "rgba(255,255,255,0.3)",
+                width = 1,
+                dash  = "dot"),
             row=row, col=col,
         )
 
@@ -587,20 +844,24 @@ elif page == "Forecast View":
                              family="Arial"),
         margin        = dict(t=60, b=90, l=60, r=40),
         legend        = dict(
-            orientation="h", y=-0.18,
-            xanchor="center", x=0.5,
-            font=dict(color="#FFFFFF")),
+            orientation = "h",
+            y           = -0.18,
+            xanchor     = "center",
+            x           = 0.5,
+            font        = dict(color="#FFFFFF")),
     )
     fig_fc.update_xaxes(
-        tickformat="%b %y", tickangle=-30,
-        showgrid=True,
-        gridcolor="rgba(255,255,255,0.1)",
-        color="#FFFFFF")
+        tickformat  = "%b %y",
+        tickangle   = -30,
+        showgrid    = True,
+        gridcolor   = "rgba(255,255,255,0.1)",
+        color       = "#FFFFFF")
     fig_fc.update_yaxes(
-        tickprefix="$", ticksuffix="M",
-        showgrid=True,
-        gridcolor="rgba(255,255,255,0.1)",
-        color="#FFFFFF")
+        tickprefix  = "$",
+        ticksuffix  = "M",
+        showgrid    = True,
+        gridcolor   = "rgba(255,255,255,0.1)",
+        color       = "#FFFFFF")
     st.plotly_chart(fig_fc,
                     use_container_width=True)
 
@@ -612,13 +873,14 @@ elif page == "Forecast View":
                   "Date", "Revenue",
                   "Total_OpEx",
                   "Operating_Income",
-                  "Operating_Margin"
+                  "Operating_Margin",
               ]].copy())
-    fc_tbl["Date"] = fc_tbl["Date"].dt.strftime(
-        "%b %Y")
+    fc_tbl["Date"] = (
+        fc_tbl["Date"].dt.strftime("%b %Y"))
     fc_tbl["Revenue"] = fc_tbl["Revenue"].apply(
         lambda x: f"${x/1e6:.2f}M")
-    fc_tbl["Total_OpEx"] = fc_tbl["Total_OpEx"].apply(
+    fc_tbl["Total_OpEx"] = fc_tbl[
+        "Total_OpEx"].apply(
         lambda x: f"${x/1e6:.2f}M")
     fc_tbl["Operating_Income"] = fc_tbl[
         "Operating_Income"].apply(
@@ -626,10 +888,9 @@ elif page == "Forecast View":
     fc_tbl["Operating_Margin"] = fc_tbl[
         "Operating_Margin"].apply(
         lambda x: f"{x:.1%}")
-    fc_tbl.columns = ["Month", "Revenue",
-                      "Total OpEx",
-                      "Operating Income",
-                      "Op Margin"]
+    fc_tbl.columns = [
+        "Month", "Revenue", "Total OpEx",
+        "Operating Income", "Op Margin"]
     st.dataframe(fc_tbl,
                  use_container_width=True,
                  hide_index=True)
@@ -651,9 +912,10 @@ elif page == "Model Governance":
     with col1:
         st.markdown("""
         <div class="metric-card">
-            <div class="metric-label">Primary Model</div>
+            <div class="metric-label">
+                Primary Model</div>
             <div class="metric-value"
-                 style="font-size:20px">
+                 style="font-size:18px">
                 Holt-Winters</div>
             <div class="metric-delta">
                 Validated on holdout test</div>
@@ -661,9 +923,11 @@ elif page == "Model Governance":
     with col2:
         st.markdown("""
         <div class="metric-card">
-            <div class="metric-label">Shadow Model</div>
+            <div class="metric-label">
+                Shadow Model</div>
             <div class="metric-value"
-                 style="font-size:20px">Prophet</div>
+                 style="font-size:18px">
+                Prophet</div>
             <div class="metric-delta">
                 Divergence monitoring active</div>
         </div>""", unsafe_allow_html=True)
@@ -673,20 +937,45 @@ elif page == "Model Governance":
             <div class="metric-label">
                 Governance Threshold</div>
             <div class="metric-value"
-                 style="font-size:20px">5%</div>
+                 style="font-size:18px">5%</div>
             <div class="metric-delta">
                 MAPE gap to trigger review</div>
         </div>""", unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown(
-        "### Holdout Validation Results "
-        "(Jul – Dec 2025)")
 
+    # ── AI Commentary ──────────────────────────────────
+    st.markdown(f"""
+    <div class="commentary-box">
+        <div class="commentary-title">
+            🤖 CFO AI Commentary
+        </div>
+        Both Holt-Winters and Prophet were validated
+        on a 6-month holdout test set (Jul–Dec 2025)
+        across 4 regions and 2 forecast targets
+        (8 series total). Holt-Winters achieved a
+        lower average MAPE of 4.0% versus Prophet at
+        12.7% — with Prophet's average severely
+        inflated by a 57.9% error on North_Am Revenue
+        caused by false changepoint detection.
+        Holt-Winters won on 7 of 8 series and is
+        selected as the primary model on both accuracy
+        AND interpretability grounds. This is the
+        correct governance decision: the more complex
+        model produced worse results on this dataset,
+        demonstrating that model selection must always
+        be evidence-based, not assumption-based.
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown(
+        "### Holdout Validation — Jul–Dec 2025")
     metrics_data = {
         "Region"      : [
-            "EMEA","EMEA","LATAM","LATAM",
-            "North_Am","North_Am","APAC","APAC"],
+            "EMEA","EMEA",
+            "LATAM","LATAM",
+            "North_Am","North_Am",
+            "APAC","APAC"],
         "Target"      : ["Revenue","Total_OpEx"] * 4,
         "HW MAPE"     : [
             "2.3%","3.2%","6.3%","7.5%",
@@ -704,8 +993,7 @@ elif page == "Model Governance":
     st.dataframe(
         pd.DataFrame(metrics_data),
         use_container_width=True,
-        hide_index=True,
-    )
+        hide_index=True)
 
     st.markdown(
         "### Model Trade-Off Governance Argument")
@@ -713,59 +1001,52 @@ elif page == "Model Governance":
     <div style="background:rgba(31,56,100,0.4);
                 padding:20px; border-radius:8px;
                 border-left:4px solid #4A90D9;
-                font-family:Arial; font-size:14px;
-                line-height:1.7; color:#FFFFFF">
+                font-size:14px; line-height:1.7;
+                color:#FFFFFF">
 
-    <b>QUESTION:</b> Which forecasting model should be
-    used for the TechFlow 2026 forecast?<br><br>
+    <b>QUESTION:</b> Which forecasting model should
+    be used for the TechFlow 2026 forecast?<br><br>
 
-    <b>EVIDENCE:</b> Both Holt-Winters and Prophet were
-    trained on 18 months and evaluated on a 6-month
-    holdout test across 4 regions and 2 targets
-    (8 series total).<br><br>
+    <b>EVIDENCE:</b> Both models trained on 18 months,
+    evaluated on 6-month holdout across 4 regions
+    and 2 targets (8 series).<br><br>
 
     <b>RESULTS:</b><br>
-    &nbsp;— Holt-Winters average MAPE: <b>4.0%</b><br>
-    &nbsp;— Prophet average MAPE: <b>12.7%</b>
-    (inflated by North_Am 57.9% error)<br>
-    &nbsp;— Holt-Winters wins: <b>7 of 8 series</b>
-    <br><br>
+    &nbsp;— HW avg MAPE: <b>4.0%</b><br>
+    &nbsp;— Prophet avg MAPE: <b>12.7%</b>
+    (North_Am 57.9% error inflates average)<br>
+    &nbsp;— HW wins: <b>7 of 8 series</b><br><br>
 
     <b>NORTH_AM FINDING:</b> Prophet produced a 57.9%
-    error on North_Am Revenue vs Holt-Winters 6.2%.
-    Prophet's changepoint detection found a false
-    structural break and extrapolated incorrectly.
-    Model complexity does not guarantee accuracy on
-    short training histories.<br><br>
+    error vs HW 6.2%. False changepoint detected
+    in training data — incorrect trajectory
+    extrapolated. Model complexity ≠ accuracy
+    on short training histories.<br><br>
 
-    <b>DECISION: Holt-Winters is the PRIMARY model.</b>
+    <b>DECISION: Holt-Winters — PRIMARY model.</b>
     <br><br>
 
-    <b>RATIONALE:</b> Holt-Winters wins on both accuracy
-    AND interpretability. Its trend and seasonal
-    components can be explained in plain English to any
-    finance professional. Prophet runs as shadow model
-    — divergence over 5% triggers an audit flag,
-    not an automatic model switch.
+    <b>GOVERNANCE RULE:</b> Prophet runs as shadow
+    model. Divergence over 5% triggers audit flag —
+    not automatic model switch.
 
     </div>
     """, unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
     st.markdown("### Scalability Assessment")
-
     scale_data = {
         "Scenario"       : [
-            "Double months (48 months history)",
+            "Double months (48 months)",
             "Double regions (8 regions)",
-            "Double cost categories (20 GL lines)",
+            "Double cost categories (20 GL)",
             "Enterprise scale (500K+ rows)",
         ],
         "Impact"         : [
             "Forecast improves — more data",
             "Auto-handled via CONFIG",
             "Auto-handled via column_map",
-            "pandas bottleneck — needs Polars or SQL",
+            "pandas bottleneck — needs Polars/SQL",
         ],
         "Action Required": [
             "None — automatic",
@@ -783,8 +1064,7 @@ elif page == "Model Governance":
     st.dataframe(
         pd.DataFrame(scale_data),
         use_container_width=True,
-        hide_index=True,
-    )
+        hide_index=True)
 
     st.markdown("""
     <div style="background:rgba(57,73,171,0.4);
@@ -795,21 +1075,20 @@ elif page == "Model Governance":
     <b>Current prototype validated for mid-market
     scale (up to ~500K rows).</b><br>
     For enterprise scale, the ingestion and
-    transformation layer would migrate to a
-    database-backed architecture while forecasting
-    and visualisation layers remain identical.
-    The CONFIG-driven design means no forecast or
-    dashboard code changes are required — only the
-    data connection layer changes.
+    transformation layer migrates to a database
+    backend while forecasting and visualisation
+    layers remain identical. CONFIG-driven design
+    means no forecast or dashboard code changes
+    required — only the data connection changes.
     </div>
     """, unsafe_allow_html=True)
 
 st.markdown("---")
 st.markdown(
-    "<p style='text-align:center; color:#AAAAAA;"
-    "font-size:12px'>"
-    "TechFlow Solutions · CFO Intelligence System · "
-    "Mastery Level · Holt-Winters primary model · "
-    "Prophet shadow model</p>",
+    "<p style='text-align:center; "
+    "color:#666666; font-size:12px'>"
+    "TechFlow Solutions · CFO Intelligence System"
+    " · Mastery Level · "
+    "Holt-Winters primary · Prophet shadow</p>",
     unsafe_allow_html=True,
 )
