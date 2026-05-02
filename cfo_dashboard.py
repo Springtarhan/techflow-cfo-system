@@ -226,7 +226,13 @@ def call_anthropic(system_prompt, user_prompt, api_key, max_tokens=2500):
     payload = {'model': 'claude-opus-4-5', 'max_tokens': max_tokens, 'system': system_prompt, 'messages': [{'role': 'user', 'content': user_prompt}]}
     resp = requests.post('https://api.anthropic.com/v1/messages', headers=headers, json=payload, timeout=60)
     if resp.status_code == 200:
-        return resp.json()['content'][0]['text']
+        import re
+        text = resp.json()['content'][0]['text']
+        text = re.sub(r'#{1,3}\s+(.*?)(<br>|$)', r'<b>\1</b>\2', text)
+        text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', text)
+        text = re.sub(r'\*(.*?)\*', r'<i>\1</i>', text)
+        text = text.replace('---', '<hr>')
+        return text
     return f'API Error {resp.status_code}: {resp.text[:200]}'
 
 if page == 'Executive Scorecard':
