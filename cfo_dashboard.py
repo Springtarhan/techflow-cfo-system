@@ -223,7 +223,7 @@ def build_data_summary(actuals_df, forecasts_df):
 
 def call_anthropic(system_prompt, user_prompt, api_key, max_tokens=2500):
     headers = {'x-api-key': api_key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json'}
-    payload = {'model': 'claude-sonnet-4-20250514', 'max_tokens': max_tokens, 'system': system_prompt, 'messages': [{'role': 'user', 'content': user_prompt}]}
+    payload = {'model': 'claude-opus-4-5', 'max_tokens': max_tokens, 'system': system_prompt, 'messages': [{'role': 'user', 'content': user_prompt}]}
     resp = requests.post('https://api.anthropic.com/v1/messages', headers=headers, json=payload, timeout=60)
     if resp.status_code == 200:
         return resp.json()['content'][0]['text']
