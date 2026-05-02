@@ -241,6 +241,7 @@ def build_data_summary(actuals_df, forecasts_df):
     out.append('  North_Am: OpEx sign flip corrected — all values were negative in raw data')
     out.append('  APAC: Duplicate row removed')
     out.append('  INSTRUCTION: Reference data quality where relevant in your analysis. Agent B must flag the EMEA audit note as a risk to forecast reliability.')
+    out.append('CALCULATION BASIS: COGS=38% group average. Operating Income=Revenue*0.62-Total_OpEx. Prior year=24mo actuals divided by 2. Regional margins are indicative — COGS varies by region but group average applied throughout. Agent B must challenge the COGS assumption as a governance risk.')
     return '\n'.join(out)
 
 def call_anthropic(system_prompt, user_prompt, api_key, max_tokens=2500):
