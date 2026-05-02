@@ -464,7 +464,7 @@ CORE PROBLEM: OpEx deterioration hidden beneath stable revenue aggregates.
 AGENT A — THE ANALYST: Surface top 3 findings with exact numbers.
 AGENT B — THE SKEPTIC: Challenge each Agent A finding directly. What is fragile?
 AGENT C — CFO MEMO WRITER: Board-ready memo under 300 words. Include: situation, findings, risks, three time-bound recommended actions, bottom line.
-RULES: Only cite numbers from the data. Agent B must genuinely challenge. Every action must be specific and time-bound.'''
+RULES: Only cite numbers from the data. Agent B must genuinely challenge. Every recommended action must include a validation prerequisite — what must be confirmed BEFORE the action is taken. Format: Prerequisite → Action → Timeline.'''
         usr_prompt = f'''Run the full three-agent analysis on this TechFlow forecast data.
 
 {data_summary}
