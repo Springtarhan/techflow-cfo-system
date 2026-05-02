@@ -413,10 +413,18 @@ Generate all three agents in one response.'''
                 ag_c = result[c_s:].strip()
             else:
                 ag_a = result; ag_b = ''; ag_c = ''
-            st.markdown(f'<div class="agent-box agent-a"><div class="agent-title" style="color:#4A90D9">🔵 AGENT A — THE ANALYST</div>{ag_a.replace(chr(10),"<br>")}</div>', unsafe_allow_html=True)
-            if ag_b: st.markdown(f'<div class="agent-box agent-b"><div class="agent-title" style="color:#FF6B6B">🔴 AGENT B — THE SKEPTIC</div>{ag_b.replace(chr(10),"<br>")}</div>', unsafe_allow_html=True)
-            if ag_c: st.markdown(f'<div class="agent-box agent-c"><div class="agent-title" style="color:#6BCB77">🟢 AGENT C — CFO STRATEGIC MEMO</div>{ag_c.replace(chr(10),"<br>")}</div>', unsafe_allow_html=True)
-            memo_html = f'<html><body style="font-family:Arial;padding:40px;max-width:800px;margin:auto"><h1>TechFlow Solutions</h1><h2>CFO Strategic Memo — 2026</h2><hr><h3>Agent A</h3><p>{ag_a.replace(chr(10),"<br>")}</p><hr><h3>Agent B</h3><p>{ag_b.replace(chr(10),"<br>")}</p><hr><h3>Agent C — CFO Memo</h3><p>{ag_c.replace(chr(10),"<br>")}</p></body></html>'
+            import re
+            def md_to_html(text):
+                text = re.sub(r'#{1,3}\s+(.*)', r'<b>\1</b>', text)
+                text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', text)
+                text = re.sub(r'\*(.*?)\*', r'<i>\1</i>', text)
+                text = text.replace('---', '<hr style="border-color:rgba(255,255,255,0.2)">')
+                text = text.replace(chr(10), '<br>')
+                return text
+            st.markdown(f'<div class="agent-box agent-a"><div class="agent-title" style="color:#4A90D9">🔵 AGENT A — THE ANALYST</div>{md_to_html(ag_a)}</div>', unsafe_allow_html=True)
+            if ag_b: st.markdown(f'<div class="agent-box agent-b"><div class="agent-title" style="color:#FF6B6B">🔴 AGENT B — THE SKEPTIC</div>{md_to_html(ag_b)}</div>', unsafe_allow_html=True)
+            if ag_c: st.markdown(f'<div class="agent-box agent-c"><div class="agent-title" style="color:#6BCB77">🟢 AGENT C — CFO STRATEGIC MEMO</div>{md_to_html(ag_c)}</div>', unsafe_allow_html=True)
+            memo_html = f'<html><body style="font-family:Arial;padding:40px;max-width:800px;margin:auto"><h1>TechFlow Solutions</h1><h2>CFO Strategic Memo — 2026</h2><hr><h3>Agent A — The Analyst</h3><p>{md_to_html(ag_a)}</p><hr><h3>Agent B — The Skeptic</h3><p>{md_to_html(ag_b)}</p><hr><h3>Agent C — CFO Strategic Memo</h3><p>{md_to_html(ag_c)}</p></body></html>'
             st.download_button(label='📥 Download Full Memo', data=memo_html, file_name='techflow_cfo_memo_2026.html', mime='text/html', use_container_width=True)
             st.success('✅ Strategic memo generated. Download above to save.')
 
