@@ -155,6 +155,19 @@ def generate_scorecard_commentary(rev_fc, opex_fc, margin_fc, rev_growth, margin
         parts.append(f'OpEx ratio {or_ratio:.1%} is within range but trending toward the alert zone. Margin {margin_fc:.1%} requires active cost discipline.')
     else:
         parts.append(f'OpEx ratio {or_ratio:.1%} is healthy. Operating margin {margin_fc:.1%} demonstrates strong cost discipline.')
+    with st.expander('🔢 Calculation Assumptions & Formula Definitions'):
+        st.markdown('**KPI Definitions used in this dashboard:**')
+        st.markdown('| KPI | Formula | Assumption |')
+        st.markdown('|-----|---------|------------|')
+        st.markdown('| Gross Profit | Revenue × (1 - 38%) | COGS = 38% of revenue — group average |')
+        st.markdown('| Operating Income | Gross Profit - Total OpEx | OpEx from forecast model |')
+        st.markdown('| Operating Margin | Operating Income / Revenue | Expressed as % |')
+        st.markdown('| OpEx/Revenue | Total OpEx / Revenue | CFO alert threshold: 40% |')
+        st.markdown('| Prior Year Annualised | 24-month actuals ÷ 2 | Jan 2024 – Dec 2025 = 2 years |')
+        st.markdown('| Revenue Growth | (FC - Prior Yr) / Prior Yr | Forecast vs annualised actuals |')
+        st.markdown('')
+        st.markdown('**Slider adjustments apply to forecast only — actuals are unchanged.**')
+        st.markdown('**COGS assumption is group-level. Regional COGS may vary — treat margin by region as indicative.**')
     if rev_adj != 0 or opex_adj != 0 or inflation != 0:
         parts.append(f'Scenario active: Revenue {rev_adj:+d}%, OpEx reduction {opex_adj:+d}%, Inflation {inflation}%. Stress-test against Q1 actuals before committing.')
     return ' '.join(parts)
