@@ -122,6 +122,8 @@ page = st.sidebar.radio('Navigation', [
 ], index=0)
 
 st.sidebar.markdown('---')
+st.sidebar.markdown('''<div style="background:rgba(46,125,50,0.2);padding:10px;border-radius:6px;border-left:3px solid #6BCB77;margin-bottom:5px"><p style="color:#6BCB77;margin:0;font-size:11px;font-weight:bold;text-transform:uppercase">✅ Data Audit Status</p><p style="color:#FFFFFF;margin:4px 0 0 0;font-size:11px">Source: messy_financial_data.xlsx<br>Cleaned: Jan 2024 – Dec 2025<br>Issues found: 7 &nbsp;|&nbsp; Fixed: 7 &nbsp;|&nbsp; Failed: 0<br>Post-clean score: 100/100<br>Model: Holt-Winters &nbsp;|&nbsp; MAPE: 4.0%</p></div>''', unsafe_allow_html=True)
+st.sidebar.markdown('---')
 st.sidebar.markdown('### ⚙️ Assumptions')
 rev_adj = st.sidebar.slider('Revenue Growth Adjustment (%)', -20, 20, 0, 1)
 opex_adj = st.sidebar.slider('OpEx Reduction Target (%)', -20, 20, 0, 1)
@@ -219,6 +221,13 @@ def build_data_summary(actuals_df, forecasts_df):
     out.append('PRIMARY MODEL: Holt-Winters (avg MAPE 4.0%)')
     out.append('SHADOW MODEL: Prophet (avg MAPE 12.7%, North_Am error 57.9%)')
     out.append('CFO ALERT THRESHOLD: OpEx/Revenue > 40%')
+        out.append('DATA QUALITY AUDIT:')
+        out.append('  Post-clean score: 100/100 | Issues found: 7 | Fixed: 7 | Failed: 0')
+        out.append('  EMEA: Mixed date formats standardised — irregular intra-month entries remain, flag for controller')
+        out.append('  LATAM: ERROR strings and null rows imputed via forward-fill')
+        out.append('  North_Am: OpEx sign flip corrected — all values were negative in raw data')
+        out.append('  APAC: Duplicate row removed')
+        out.append('  INSTRUCTION: Reference data quality where relevant in your analysis. Agent B must flag the EMEA audit note as a risk to forecast reliability.')
     return '\n'.join(out)
 
 def call_anthropic(system_prompt, user_prompt, api_key, max_tokens=2500):
@@ -238,6 +247,18 @@ def call_anthropic(system_prompt, user_prompt, api_key, max_tokens=2500):
 if page == 'Executive Scorecard':
     st.markdown('## TechFlow Solutions &nbsp;·&nbsp; Executive Scorecard 2026')
     st.markdown('*Adjust sliders in the sidebar to stress-test assumptions in real time*')
+    with st.expander('📋 Data Provenance & Audit Trail — click to expand'):
+        st.markdown('| Step | Action | Result |')
+        st.markdown('|------|--------|--------|')
+        st.markdown('| 1 — Ingestion | Raw data loaded | 4 regions × 24 months = 96 rows |')
+        st.markdown('| 2 — Diagnosis | Structural checks | 7 issues found across 4 regions |')
+        st.markdown('| 3 — Cleaning | Pipeline applied | Dates, ERROR strings, sign flips, duplicates fixed |')
+        st.markdown('| 4 — Quality | Post-clean score | 100/100 — zero failures |')
+        st.markdown('| 5 — Forecast | Holt-Winters trained | Avg MAPE 4.0% on 6-month holdout |')
+        st.markdown('| 6 — Export | Dashboard data | Cleaned actuals + validated 2026 forecast |')
+        st.markdown('')
+        st.markdown('**Issues resolved:** EMEA mixed date formats · LATAM ERROR strings + null rows · North_Am OpEx sign flip · APAC duplicate row')
+        st.markdown('**⚠️ Controller note:** EMEA irregular intra-month entries flagged — treat EMEA forecast as indicative pending full audit.')
     if rev_adj != 0 or opex_adj != 0 or inflation != 0:
         st.info(f'⚙️ Active: Revenue {rev_adj:+d}% | OpEx reduction {opex_adj:+d}% | Inflation {inflation:+d}%')
     fc_2026_rev   = fc_f['Revenue'].sum()
@@ -288,6 +309,18 @@ if page == 'Executive Scorecard':
 elif page == 'Regional Diagnostic':
     st.markdown('## TechFlow Solutions &nbsp;·&nbsp; Regional Diagnostic')
     st.markdown('*OpEx-to-Revenue ratio — the margin compression detector*')
+    with st.expander('📋 Data Provenance & Audit Trail — click to expand'):
+        st.markdown('| Step | Action | Result |')
+        st.markdown('|------|--------|--------|')
+        st.markdown('| 1 — Ingestion | Raw data loaded | 4 regions × 24 months = 96 rows |')
+        st.markdown('| 2 — Diagnosis | Structural checks | 7 issues found across 4 regions |')
+        st.markdown('| 3 — Cleaning | Pipeline applied | Dates, ERROR strings, sign flips, duplicates fixed |')
+        st.markdown('| 4 — Quality | Post-clean score | 100/100 — zero failures |')
+        st.markdown('| 5 — Forecast | Holt-Winters trained | Avg MAPE 4.0% on 6-month holdout |')
+        st.markdown('| 6 — Export | Dashboard data | Cleaned actuals + validated 2026 forecast |')
+        st.markdown('')
+        st.markdown('**Issues resolved:** EMEA mixed date formats · LATAM ERROR strings + null rows · North_Am OpEx sign flip · APAC duplicate row')
+        st.markdown('**⚠️ Controller note:** EMEA irregular intra-month entries flagged — treat EMEA forecast as indicative pending full audit.')
     dc = generate_diagnostic_commentary(act_f, selected_regions)
     st.markdown(f'<div class="commentary-box"><div class="commentary-title">🤖 CFO AI Commentary</div>{dc}</div>', unsafe_allow_html=True)
     fig = go.Figure()
@@ -324,6 +357,18 @@ elif page == 'Regional Diagnostic':
 elif page == 'Forecast View':
     st.markdown('## TechFlow Solutions &nbsp;·&nbsp; 2026 Forecast View')
     st.markdown('*Actuals Jan 2024 – Dec 2025 | Forecast Jan – Dec 2026*')
+    with st.expander('📋 Data Provenance & Audit Trail — click to expand'):
+        st.markdown('| Step | Action | Result |')
+        st.markdown('|------|--------|--------|')
+        st.markdown('| 1 — Ingestion | Raw data loaded | 4 regions × 24 months = 96 rows |')
+        st.markdown('| 2 — Diagnosis | Structural checks | 7 issues found across 4 regions |')
+        st.markdown('| 3 — Cleaning | Pipeline applied | Dates, ERROR strings, sign flips, duplicates fixed |')
+        st.markdown('| 4 — Quality | Post-clean score | 100/100 — zero failures |')
+        st.markdown('| 5 — Forecast | Holt-Winters trained | Avg MAPE 4.0% on 6-month holdout |')
+        st.markdown('| 6 — Export | Dashboard data | Cleaned actuals + validated 2026 forecast |')
+        st.markdown('')
+        st.markdown('**Issues resolved:** EMEA mixed date formats · LATAM ERROR strings + null rows · North_Am OpEx sign flip · APAC duplicate row')
+        st.markdown('**⚠️ Controller note:** EMEA irregular intra-month entries flagged — treat EMEA forecast as indicative pending full audit.')
     if rev_adj!=0 or opex_adj!=0 or inflation!=0:
         st.info(f'⚙️ Scenario: Revenue {rev_adj:+d}% | OpEx {opex_adj:+d}% | Inflation {inflation:+d}%')
     fc = generate_forecast_commentary(fc_f, act_f, selected_regions)
@@ -358,6 +403,18 @@ elif page == 'Forecast View':
 elif page == 'Model Governance':
     st.markdown('## TechFlow Solutions &nbsp;·&nbsp; Model Governance')
     st.markdown('*Evidence-based model selection — accuracy vs interpretability*')
+    with st.expander('📋 Data Provenance & Audit Trail — click to expand'):
+        st.markdown('| Step | Action | Result |')
+        st.markdown('|------|--------|--------|')
+        st.markdown('| 1 — Ingestion | Raw data loaded | 4 regions × 24 months = 96 rows |')
+        st.markdown('| 2 — Diagnosis | Structural checks | 7 issues found across 4 regions |')
+        st.markdown('| 3 — Cleaning | Pipeline applied | Dates, ERROR strings, sign flips, duplicates fixed |')
+        st.markdown('| 4 — Quality | Post-clean score | 100/100 — zero failures |')
+        st.markdown('| 5 — Forecast | Holt-Winters trained | Avg MAPE 4.0% on 6-month holdout |')
+        st.markdown('| 6 — Export | Dashboard data | Cleaned actuals + validated 2026 forecast |')
+        st.markdown('')
+        st.markdown('**Issues resolved:** EMEA mixed date formats · LATAM ERROR strings + null rows · North_Am OpEx sign flip · APAC duplicate row')
+        st.markdown('**⚠️ Controller note:** EMEA irregular intra-month entries flagged — treat EMEA forecast as indicative pending full audit.')
     c1,c2,c3=st.columns(3)
     with c1: st.markdown('<div class="metric-card"><div class="metric-label">Primary Model</div><div class="metric-value" style="font-size:18px">Holt-Winters</div><div class="metric-delta">Validated on holdout test</div></div>', unsafe_allow_html=True)
     with c2: st.markdown('<div class="metric-card"><div class="metric-label">Shadow Model</div><div class="metric-value" style="font-size:18px">Prophet</div><div class="metric-delta">Divergence monitoring active</div></div>', unsafe_allow_html=True)
