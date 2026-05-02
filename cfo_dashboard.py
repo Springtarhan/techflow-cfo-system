@@ -463,7 +463,7 @@ COMPANY: TechFlow Solutions — SaaS, 4 regions: EMEA, LATAM, North_Am, APAC.
 CORE PROBLEM: OpEx deterioration hidden beneath stable revenue aggregates.
 AGENT A — THE ANALYST: Surface top 3 findings with exact numbers.
 AGENT B — THE SKEPTIC: Challenge each Agent A finding directly. What is fragile?
-AGENT C — CFO MEMO WRITER: Board-ready memo under 300 words. Include: situation, findings, risks, three time-bound recommended actions, bottom line.
+AGENT C — CFO MEMO WRITER: Board-ready memo under 300 words. Include: situation, findings, risks, bottom line. For recommended actions you MUST have exactly one action per Agent B challenge — do not consolidate. Action 1 must address EMEA data integrity. Action 2 must address LATAM imputation. Action 3 must address North_Am sign flip root cause investigation. Each action must reference the specific Agent B challenge it resolves.
 RULES: Only cite numbers from the data. Agent B must genuinely challenge. Do NOT use markdown tables anywhere in your response. For recommended actions use this exact format for each action:
 ACTION 1:
 Prerequisite: [what must be validated first]
